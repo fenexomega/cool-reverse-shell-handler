@@ -16,6 +16,7 @@ class Handler(object):
         """TODO: to be defined1. """
         self.conns = []
         self.exposer = JsonExposer(self.conns)
+        self.exposer.start()
         self.tcp = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.tcp.bind((IP,PORT))
     def run(self):
@@ -36,6 +37,7 @@ class Handler(object):
             print(e)
         finally:
             self.tcp.close()
+            self.exposer.join()
 
     def notifyOffline(connection):
         print("Offline: {}".format(connection.ip))

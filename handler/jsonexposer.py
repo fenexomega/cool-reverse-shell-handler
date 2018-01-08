@@ -18,7 +18,7 @@ class ClientThread(threading.Thread):
 
 
     def __init__(self,conn):
-        super().__init__(self)
+        super().__init__()
         self.in_queue = []
         self.out_queue = []
         self.conn = conn
@@ -47,7 +47,7 @@ class ClientThread(threading.Thread):
        send_in_json(msg)
 
 
-    def run():
+    def run(self):
         con_list = [self.conn]
         try:
             while True:
@@ -72,12 +72,15 @@ class ClientThread(threading.Thread):
         global connected_clients
         connected_clients.remove(self) 
 
-class JsonExposer(object):
+
+#ORGANIZE THIS IN ANOTHER THREAD
+class JsonExposer(threading.Thread):
 
     """Docstring for JsonExposer. """
 
     def __init__(self,shells):
         """TODO: to be defined1. """
+        super().__init__()
         self.shells = shells
         self.tcp = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.tcp.bind((HOST,PORT))
@@ -95,10 +98,11 @@ class JsonExposer(object):
         ct.send_in_json(obj)
 
 
-    def run():
+    def run(self):
         try:
             while True:
                 connection, ip = self.tcp.accept()
+                print('Received Connection from {}'.format(ip))
                 connection.setblocking(False)
                 ct = ClientThread(connection)
                 ct.start()
