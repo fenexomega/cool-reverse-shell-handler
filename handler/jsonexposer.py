@@ -5,29 +5,31 @@ from select import select
 import socket 
 import threading
 import json
-PORT = 6969
-HOST = '0.0.0.0'
+PORT            = 6969
+HOST            = '0.0.0.0'
 MAX_CONNECTIONS = 10
-TIMEOUT = 15.0 # IN SECONDS
+TIMEOUT         = 5.0 # IN SECONDS
+BUFFER          = 8096
 
 connected_clients = []
 
 
 class ClientThread(threading.Thread):
     """Thread que envia input e output do shell para o cliente"""
-
-
-    def __init__(self,conn):
+    def __init__(self,conn,ip):
         super().__init__()
-        self.in_queue = []
-        self.out_queue = []
-        self.conn = conn
-        self.id = conn.id
+        self.in_queue   =   []
+        self.out_queue  =   []
+        self.conn       =   conn
+        self.ip         =   ip
+        self.online     =   True
     
     def execute_cmd(self,cmd):
         #EXECUTE COMMAND
         try:
-            shell = self.server.conns[cmd['id']]
+            cmd = json.dumps(cmd)
+            self.shell_id = cmd['id']
+            shell = self.server.conns[shell_id]
             if not conn.online:
                 send_in_json('Error: That connection is closed')
                 return
@@ -38,14 +40,13 @@ class ClientThread(threading.Thread):
             send_in_json('Error: That connection doesn\'t exist')
     
     def send_in_json(self,message):
-        obj = {'id' : self.id, 'output' : message }
+        obj = {'message' : message }
         message = json.dumps(obj)
         self.out_queue.append(message)
 
     def notify(self,message):
        msg = json.dumps({'message':message})
        send_in_json(msg)
-
 
     def run(self):
         con_list = [self.conn]
@@ -59,13 +60,18 @@ class ClientThread(threading.Thread):
                     self.out_queue.clear()
                 for s in senders:
                         msg = s.recv(BUFFER).decode('utf8')
-                        self.execute_cmd(msg)
-        except:
+                        if msg:
+                            self.execute_cmd(msg)
+        except Exception as e:
             print("Connection Closed")
-            self.stop_connection()
+            print(e)
+        finally:
+            if self.online:
+                self.stop_connection()
             self.remove_itself()
     
     def stop_connection(self):
+        self.conn.shutdown(socket.SHUT_RDWR)
         self.conn.close()
 
     def remove_itself(self):
@@ -85,6 +91,7 @@ class JsonExposer(threading.Thread):
         self.tcp = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.tcp.bind((HOST,PORT))
         self.tcp.listen(MAX_CONNECTIONS)
+        self.online = True
 
     def send_shell_list(self,ct):
         # TODO
@@ -97,32 +104,35 @@ class JsonExposer(threading.Thread):
         obj = {'type':'info','title':'connected_clients','content':l}
         ct.send_in_json(obj)
 
-
     def run(self):
         try:
             while True:
                 connection, ip = self.tcp.accept()
                 print('Received Connection from {}'.format(ip))
-                connection.setblocking(False)
-                ct = ClientThread(connection)
+#                connection.setblocking(False)
+                ct = ClientThread(connection,ip)
                 ct.start()
                 connected_clients.append(ct)
-                send_shells_list(ct) 
+                self.send_shell_list(ct) 
             #TODO CONDITION TO EXIT?
-        except Exception as e :
+        except Exception as e:
             #TODO
             #MOSTRAR MELHOR E FAZER LOG
             print(e)
         finally:
-            for ct in connected_clients:
-                ct.stop_connection()
-            for ct in connected_clients:
-                ct.join()
-         
+            if self.online:
+                self.close_connection()
 
+    def close_connection(self):
+        for ct in connected_clients:
+            ct.stop_connection()
+        for ct in connected_clients:
+            ct.join()
+        self.tcp.shutdown(socket.SHUT_RDWR)
+        self.tcp.close()
+        self.online = False
+         
     def notify(self,connection):
         for client in connected_clients:
             client.notify(connection)
         
-        
-

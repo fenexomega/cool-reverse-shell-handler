@@ -37,6 +37,7 @@ class Handler(object):
             print(e)
         finally:
             self.tcp.close()
+            self.exposer.close_connection()
             self.exposer.join()
 
     def notifyOffline(connection):
