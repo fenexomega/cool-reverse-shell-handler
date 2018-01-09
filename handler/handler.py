@@ -8,6 +8,7 @@ MAX_CONNECTIONS = 1000
 PORT = 8080
 IP   = '0.0.0.0'
 
+
 class Handler(object):
 
     """Docstring for Handler. """
@@ -37,6 +38,9 @@ class Handler(object):
             print("EXCEPTION")
             print(e)
         finally:
+            for c in self.conns:
+                c.closeCon()
+            self.tcp.shutdown(socket.SHUT_RDWR)
             self.tcp.close()
             self.exposer.close_connection()
             self.exposer.join()

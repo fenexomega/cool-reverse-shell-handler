@@ -5,11 +5,13 @@ from select import select
 import socket 
 import threading
 import json
+import time
 PORT            = 6969
 HOST            = '0.0.0.0'
 MAX_CONNECTIONS = 10
 TIMEOUT         = 5.0 # IN SECONDS
 BUFFER          = 8096
+TIME_TO_WAIT    = 0.1 
 
 connected_clients = []
 
@@ -18,7 +20,6 @@ class ClientThread(threading.Thread):
     """Thread que envia input e output do shell para o cliente"""
     def __init__(self,conn,ip,shells):
         super().__init__()
-        self.in_queue   =   []
         self.out_queue  =   []
         self.conn       =   conn
         self.ip         =   ip
@@ -53,12 +54,13 @@ class ClientThread(threading.Thread):
 
     def run(self):
         con_list = [self.conn]
+        i = 0
         try:
-            while True:
+            while self.online:
+                time.sleep(TIME_TO_WAIT)
                 senders,receivers, errors_rec = \
                         select(con_list,con_list,[],TIMEOUT)
                 for r in receivers:
-                    print("SENDING")
                     for msg in self.out_queue:
                         r.sendall(msg.encode())
                     self.out_queue.clear()
@@ -76,6 +78,7 @@ class ClientThread(threading.Thread):
     
     def stop_connection(self):
         self.conn.shutdown(socket.SHUT_RD)
+        self.online = False
         self.conn.close()
 
     def remove_itself(self):
@@ -113,7 +116,7 @@ class JsonExposer(threading.Thread):
             while True:
                 connection, ip = self.tcp.accept()
                 print('Received Connection from {}'.format(ip))
-#                connection.setblocking(False)
+                connection.setblocking(False)
                 ct = ClientThread(connection,ip,self.shells)
                 ct.start()
                 connected_clients.append(ct)
@@ -124,15 +127,14 @@ class JsonExposer(threading.Thread):
             #MOSTRAR MELHOR E FAZER LOG
             print(e)
         finally:
-            if self.online:
-                self.close_connection()
+            self.close_connection()
 
     def close_connection(self):
         for ct in connected_clients:
             ct.stop_connection()
         for ct in connected_clients:
             ct.join()
-        self.tcp.shutdown(socket.SHUT_RDWR)
+        self.tcp.shutdown(socket.SHUT_WR)
         self.tcp.close()
         self.online = False
          

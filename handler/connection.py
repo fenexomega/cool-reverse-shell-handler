@@ -1,6 +1,8 @@
 #!usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import socket
+
 class Connection(object):
 
     """Docstring for Connection. """
@@ -15,6 +17,7 @@ class Connection(object):
         self.id = id
 
     def closeCon(self):
+        self.tcp.shutdown(socket.SHUT_RD)
         self.tcp.close()
         self.online = False
 
