@@ -6,7 +6,7 @@ class Connection(object):
     """Docstring for Connection. """
     BUFFER = 8096
 
-    def __init__(self,ip,id,conn,handler):
+    def __init__(self,conn,ip,id,handler):
         """TODO: to be defined1. """
         self.handler = handler
         self.tcp = conn
@@ -14,12 +14,12 @@ class Connection(object):
         self.ip = ip #TODO
         self.id = id
 
-    def closeCon():
+    def closeCon(self):
         self.tcp.close()
         self.online = False
 
-    def recv(buffer=BUFFER):
+    def recv(self,buffer=BUFFER):
         return self.tcp.recv(buffer).decode('utf8')
     
-    def sendall(message):
+    def sendall(self,message):
         self.tcp.sendall(message.encode()) 

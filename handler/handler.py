@@ -29,7 +29,8 @@ class Handler(object):
                 C = Connection(con,ip,id,self)
                 id += 1
                 self.conns.append(C)
-                self.exposer.notify(C)
+                con_obj = {'id':C.id,'ip':ip}
+                self.exposer.notify(con_obj)
         except KeyboardInterrupt:
             print("Exiting")
         except Exception as e:

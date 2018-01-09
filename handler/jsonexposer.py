@@ -16,45 +16,49 @@ connected_clients = []
 
 class ClientThread(threading.Thread):
     """Thread que envia input e output do shell para o cliente"""
-    def __init__(self,conn,ip):
+    def __init__(self,conn,ip,shells):
         super().__init__()
         self.in_queue   =   []
         self.out_queue  =   []
         self.conn       =   conn
         self.ip         =   ip
         self.online     =   True
+        self.shells     =   shells
     
     def execute_cmd(self,cmd):
         #EXECUTE COMMAND
         try:
-            cmd = json.dumps(cmd)
+            cmd = json.loads(cmd)
+            print(cmd)
             self.shell_id = cmd['id']
-            shell = self.server.conns[shell_id]
-            if not conn.online:
-                send_in_json('Error: That connection is closed')
+            shell = self.shells[self.shell_id]
+            if not shell.online:
+                self.send_in_json('Error: That connection is closed')
                 return
             shell.sendall(cmd['cmd'])
             output = shell.recv()
-            send_in_json(output)
+            self.send_in_json(output)
         except IndexError:
-            send_in_json('Error: That connection doesn\'t exist')
+            self.send_in_json('Error: That connection doesn\'t exist')
     
     def send_in_json(self,message):
         obj = {'message' : message }
+        print(obj)
         message = json.dumps(obj)
         self.out_queue.append(message)
 
     def notify(self,message):
-       msg = json.dumps({'message':message})
-       send_in_json(msg)
+       msg = json.dumps(message)
+       self.send_in_json(msg)
 
     def run(self):
         con_list = [self.conn]
         try:
             while True:
-                receivers, senders, errors_rec = \
+                senders,receivers, errors_rec = \
                         select(con_list,con_list,[],TIMEOUT)
                 for r in receivers:
+                    print("SENDING")
                     for msg in self.out_queue:
                         r.sendall(msg.encode())
                     self.out_queue.clear()
@@ -71,7 +75,7 @@ class ClientThread(threading.Thread):
             self.remove_itself()
     
     def stop_connection(self):
-        self.conn.shutdown(socket.SHUT_RDWR)
+        self.conn.shutdown(socket.SHUT_RD)
         self.conn.close()
 
     def remove_itself(self):
@@ -110,7 +114,7 @@ class JsonExposer(threading.Thread):
                 connection, ip = self.tcp.accept()
                 print('Received Connection from {}'.format(ip))
 #                connection.setblocking(False)
-                ct = ClientThread(connection,ip)
+                ct = ClientThread(connection,ip,self.shells)
                 ct.start()
                 connected_clients.append(ct)
                 self.send_shell_list(ct) 
@@ -135,4 +139,7 @@ class JsonExposer(threading.Thread):
     def notify(self,connection):
         for client in connected_clients:
             client.notify(connection)
+
+    def notifyOffline(self,connection):
+        pass
         
