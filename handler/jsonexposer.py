@@ -15,6 +15,7 @@ TIME_TO_WAIT    = 0.1
 
 connected_clients = []
 
+####https://docs.python.org/3/library/selectors.html
 
 class ClientThread(threading.Thread):
     """Thread que envia input e output do shell para o cliente"""
@@ -113,7 +114,9 @@ class JsonExposer(threading.Thread):
 
     def run(self):
         try:
-            while True:
+            while self.online:
+                print("Waiting accept()")
+                select([self.tcp],[self.tcp],[],TIMEOUT)
                 connection, ip = self.tcp.accept()
                 print('Received Connection from {}'.format(ip))
                 connection.setblocking(False)
@@ -125,18 +128,23 @@ class JsonExposer(threading.Thread):
         except Exception as e:
             #TODO
             #MOSTRAR MELHOR E FAZER LOG
+            print("Exception in exposer:")
             print(e)
         finally:
-            self.close_connection()
+            print("Exiting Thread")
+            if self.online:
+                self.close_connection()
 
     def close_connection(self):
         for ct in connected_clients:
             ct.stop_connection()
         for ct in connected_clients:
             ct.join()
+        print("closing exposer")
         self.tcp.shutdown(socket.SHUT_WR)
         self.tcp.close()
         self.online = False
+        print("exposer closed")
          
     def notify(self,connection):
         for client in connected_clients:
