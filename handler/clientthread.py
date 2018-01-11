@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import time
 import json
 import socket
 import threading
@@ -11,13 +12,14 @@ TIMEOUT         = 5.0 # IN SECONDS
 TIME_TO_WAIT    = 0.1 
 class ClientThread(threading.Thread):
     """Thread que envia input e output do shell para o cliente"""
-    def __init__(self,conn,ip,shells):
+    def __init__(self,conn,ip,shells,conn_clients):
         super().__init__()
         self.out_queue  =   []
         self.conn       =   conn
         self.ip         =   ip
         self.online     =   True
         self.shells     =   shells
+        self.connected_clients = conn_clients
     
     def execute_cmd(self,cmd):
         #EXECUTE COMMAND
@@ -51,8 +53,9 @@ class ClientThread(threading.Thread):
         try:
             while self.online:
                 time.sleep(TIME_TO_WAIT)
-                senders,receivers, errors_rec = \
-                        select(con_list,con_list,[],TIMEOUT)
+                if self.conn.fileno() != -1:
+                    senders,receivers, errors_rec = \
+                        select.select(con_list,con_list,[],TIMEOUT)
                 for r in receivers:
                     for msg in self.out_queue:
                         r.sendall(msg.encode())
@@ -75,5 +78,4 @@ class ClientThread(threading.Thread):
         self.conn.close()
 
     def remove_itself(self):
-        global connected_clients
-        connected_clients.remove(self) 
+        self.connected_clients.remove(self) 

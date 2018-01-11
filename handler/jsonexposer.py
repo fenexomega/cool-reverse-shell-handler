@@ -12,7 +12,6 @@ PORT            = 6969
 HOST            = '0.0.0.0'
 MAX_CONNECTIONS = 10
 
-connected_clients = []
 
 ####https://docs.python.org/3/library/selectors.html
 
@@ -26,6 +25,7 @@ class JsonExposer(threading.Thread):
     def __init__(self,shells):
         """TODO: to be defined1. """
         super().__init__()
+        self.connected_clients = []
         self.shells = shells
         self.tcp = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.tcp.bind((HOST,PORT))
@@ -47,29 +47,30 @@ class JsonExposer(threading.Thread):
         try:
             while self.online:
                 print("Waiting accept()")
-                select([self.tcp],[self.tcp],[],TIMEOUT)
-                connection, ip = self.tcp.accept()
-                print('Received Connection from {}'.format(ip))
-                connection.setblocking(False)
-                ct = ClientThread(connection,ip,self.shells)
-                ct.start()
-                connected_clients.append(ct)
-                self.send_shell_list(ct) 
+                r,w,e = select([self.tcp],[self.tcp],[],TIMEOUT)
+                if r:
+                    connection, ip = self.tcp.accept()
+                    print('Received Connection from {}'.format(ip))
+                    connection.setblocking(False)
+                    ct = ClientThread(connection,ip,self.shells,self.connected_clients)
+                    ct.start()
+                    self.connected_clients.append(ct)
+                    self.send_shell_list(ct) 
             #TODO CONDITION TO EXIT?
-        except Exception as e:
-            #TODO
-            #MOSTRAR MELHOR E FAZER LOG
-            print("Exception in exposer:")
-            print(e)
+        #except Exception as e:
+        #    #TODO
+        #    #MOSTRAR MELHOR E FAZER LOG
+        #    print("Exception in exposer:")
+        #    print(e)
         finally:
             print("Exiting Thread")
             if self.online:
                 self.close_connection()
 
     def close_connection(self):
-        for ct in connected_clients:
+        for ct in self.connected_clients:
             ct.stop_connection()
-        for ct in connected_clients:
+        for ct in self.connected_clients:
             ct.join()
         print("closing exposer")
         self.tcp.shutdown(socket.SHUT_WR)
