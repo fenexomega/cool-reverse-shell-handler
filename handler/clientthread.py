@@ -20,6 +20,7 @@ class ClientThread(threading.Thread):
         self.online     =   True
         self.shells     =   shells
         self.connected_clients = conn_clients
+        self.conn.setblocking(False)
     
     def execute_cmd(self,cmd):
         #EXECUTE COMMAND
@@ -53,20 +54,23 @@ class ClientThread(threading.Thread):
         try:
             while self.online:
                 time.sleep(TIME_TO_WAIT)
-                if self.conn.fileno() != -1:
+                print('Waiting Input')
+                if self.conn.fileno() == -1:
+                    self.online = False
+                else:
                     senders,receivers, errors_rec = \
                         select.select(con_list,con_list,[],TIMEOUT)
-                for r in receivers:
-                    for msg in self.out_queue:
-                        r.sendall(msg.encode())
-                    self.out_queue.clear()
-                for s in senders:
-                        msg = s.recv(BUFFER).decode('utf8')
-                        if msg:
-                            self.execute_cmd(msg)
-        except Exception as e:
-            print("Connection Closed")
-            print(e)
+                    for r in receivers:
+                        for msg in self.out_queue:
+                            r.sendall(msg.encode())
+                        self.out_queue.clear()
+                    for s in senders:
+                            msg = s.recv(BUFFER).decode('utf8')
+                            if msg:
+                                self.execute_cmd(msg)
+        # except Exception as e:
+        #     print("Connection Closed")
+        #     print(e)
         finally:
             if self.online:
                 self.stop_connection()

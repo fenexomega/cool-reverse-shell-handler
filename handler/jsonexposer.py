@@ -28,6 +28,7 @@ class JsonExposer(threading.Thread):
         self.connected_clients = []
         self.shells = shells
         self.tcp = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.tcp.bind((HOST,PORT))
         self.tcp.listen(MAX_CONNECTIONS)
         self.online = True
@@ -51,7 +52,6 @@ class JsonExposer(threading.Thread):
                 if r:
                     connection, ip = self.tcp.accept()
                     print('Received Connection from {}'.format(ip))
-                    connection.setblocking(False)
                     ct = ClientThread(connection,ip,self.shells,self.connected_clients)
                     ct.start()
                     self.connected_clients.append(ct)
@@ -73,7 +73,7 @@ class JsonExposer(threading.Thread):
         for ct in self.connected_clients:
             ct.join()
         print("closing exposer")
-        self.tcp.shutdown(socket.SHUT_WR)
+        self.tcp.shutdown(socket.SHUT_RDWR)
         self.tcp.close()
         self.online = False
         print("exposer closed")
