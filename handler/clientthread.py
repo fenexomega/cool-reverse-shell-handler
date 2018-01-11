@@ -52,11 +52,12 @@ class ClientThread(threading.Thread):
         con_list = [self.conn]
         i = 0
         try:
-            while self.online:
+            loop = True
+            while loop:
+                print("WAITING INPUT")
                 time.sleep(TIME_TO_WAIT)
-                print('Waiting Input')
-                if self.conn.fileno() == -1:
-                    self.online = False
+                if self.conn.fileno() == -1 or not self.online:
+                    break
                 else:
                     senders,receivers, errors_rec = \
                         select.select(con_list,con_list,[],TIMEOUT)
@@ -68,9 +69,10 @@ class ClientThread(threading.Thread):
                             msg = s.recv(BUFFER).decode('utf8')
                             if msg:
                                 self.execute_cmd(msg)
-        # except Exception as e:
-        #     print("Connection Closed")
-        #     print(e)
+                            else:
+                                loop = False
+        except Exception as e:
+            print(e)
         finally:
             if self.online:
                 self.stop_connection()
@@ -80,6 +82,7 @@ class ClientThread(threading.Thread):
         self.conn.shutdown(socket.SHUT_RD)
         self.online = False
         self.conn.close()
+        print("Client {} desconnected ".format(self.ip))
 
     def remove_itself(self):
         self.connected_clients.remove(self) 

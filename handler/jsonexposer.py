@@ -79,7 +79,7 @@ class JsonExposer(threading.Thread):
         print("exposer closed")
          
     def notify(self,connection):
-        for client in connected_clients:
+        for client in self.connected_clients:
             client.notify(connection)
 
     def notifyOffline(self,connection):

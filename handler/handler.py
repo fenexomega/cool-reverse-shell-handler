@@ -35,6 +35,7 @@ class Handler(object):
         except KeyboardInterrupt:
             print("Exiting")
         except Exception as e:
+            # https://stackoverflow.com/questions/14519177/python-exception-handling-line-number/20264059
             print("EXCEPTION")
             print(e)
         finally:
