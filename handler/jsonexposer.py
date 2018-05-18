@@ -3,7 +3,7 @@
 
 from clientthread import ClientThread
 from select import select
-import socket 
+import socket
 import threading
 import time
 
@@ -41,7 +41,7 @@ class JsonExposer(threading.Thread):
                 obj = {'id':self.shells.index(shell), \
                         'ip': shell.ip}
                 l.append(obj)
-        obj = {'type':'info','title':'connected_clients','content':l}
+        obj = {'messageType':4,'content':{'title':'connected_clients','content':l}}
         ct.send_in_json(obj)
 
     def run(self):
@@ -55,7 +55,7 @@ class JsonExposer(threading.Thread):
                     ct = ClientThread(connection,ip,self.shells,self.connected_clients)
                     ct.start()
                     self.connected_clients.append(ct)
-                    self.send_shell_list(ct) 
+                    self.send_shell_list(ct)
             #TODO CONDITION TO EXIT?
         #except Exception as e:
         #    #TODO
@@ -77,11 +77,11 @@ class JsonExposer(threading.Thread):
         self.tcp.close()
         self.online = False
         print("exposer closed")
-         
+
     def notify(self,connection):
         for client in self.connected_clients:
             client.notify(connection)
 
     def notifyOffline(self,connection):
         pass
-        
+

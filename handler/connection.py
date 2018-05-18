@@ -23,6 +23,6 @@ class Connection(object):
 
     def recv(self,buffer=BUFFER):
         return self.tcp.recv(buffer).decode('utf8')
-    
+
     def sendall(self,message):
-        self.tcp.sendall(message.encode()) 
+        self.tcp.sendall(message.encode())

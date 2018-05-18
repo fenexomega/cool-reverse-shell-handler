@@ -9,7 +9,7 @@ import select
 
 BUFFER          = 8096
 TIMEOUT         = 5.0 # IN SECONDS
-TIME_TO_WAIT    = 0.1 
+TIME_TO_WAIT    = 0.1
 class ClientThread(threading.Thread):
     """Thread que envia input e output do shell para o cliente"""
     def __init__(self,conn,ip,shells,conn_clients):
@@ -21,11 +21,16 @@ class ClientThread(threading.Thread):
         self.shells     =   shells
         self.connected_clients = conn_clients
         self.conn.setblocking(False)
-    
+
+    def parse_msg(self,msg):
+        msg = json.loads(msg)
+        print(msg)
+        if(msg['messageType'] == 'cmd'):
+            self.execute_cmd(msg['content'])
+
     def execute_cmd(self,cmd):
         #EXECUTE COMMAND
         try:
-            cmd = json.loads(cmd)
             print(cmd)
             self.shell_id = cmd['id']
             shell = self.shells[self.shell_id]
@@ -37,7 +42,7 @@ class ClientThread(threading.Thread):
             self.send_in_json(output)
         except IndexError:
             self.send_in_json('Error: That connection doesn\'t exist')
-    
+
     def send_in_json(self,message):
         obj = {'message' : message }
         print(obj)
@@ -68,7 +73,7 @@ class ClientThread(threading.Thread):
                     for s in senders:
                             msg = s.recv(BUFFER).decode('utf8')
                             if msg:
-                                self.execute_cmd(msg)
+                                self.parse_msg(msg)
                             else:
                                 loop = False
         except Exception as e:
@@ -77,7 +82,7 @@ class ClientThread(threading.Thread):
             if self.online:
                 self.stop_connection()
             self.remove_itself()
-    
+
     def stop_connection(self):
         self.conn.shutdown(socket.SHUT_RD)
         self.online = False
@@ -85,4 +90,4 @@ class ClientThread(threading.Thread):
         print("Client {} desconnected ".format(self.ip))
 
     def remove_itself(self):
-        self.connected_clients.remove(self) 
+        self.connected_clients.remove(self)
