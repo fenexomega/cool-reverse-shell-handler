@@ -20,6 +20,7 @@ class Handler(object):
         self.exposer = JsonExposer(self.conns)
         self.exposer.start()
         self.tcp = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.tcp.bind((IP,PORT))
     def run(self):
         self.tcp.listen(MAX_CONNECTIONS)
@@ -40,10 +41,12 @@ class Handler(object):
             print("EXCEPTION")
             print(e)
         finally:
+            print("Closing handler")
             for c in self.conns:
                 c.closeCon()
             self.tcp.shutdown(socket.SHUT_RDWR)
             self.tcp.close()
+            print("Handler closed")
             self.exposer.close_connection()
             self.exposer.join()
 

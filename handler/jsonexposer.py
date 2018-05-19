@@ -33,16 +33,10 @@ class JsonExposer(threading.Thread):
         self.tcp.listen(MAX_CONNECTIONS)
         self.online = True
 
-    def send_shell_list(self,ct):
-        # TODO
-        l = []
-        for shell in self.shells:
-            if shell.online:
-                obj = {'id':self.shells.index(shell), \
-                        'ip': shell.ip}
-                l.append(obj)
-        obj = {'messageType':4,'content':{'title':'connected_clients','content':l}}
-        ct.send_in_json(obj)
+    def send_shell_list(self,ct):   
+        ct.send_shell_list()
+
+
 
     def run(self):
         try:
